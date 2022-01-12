@@ -25,8 +25,7 @@ static const Menu_Option table_menu[] =
                 {'0', "Go to hotel menu",},
                 {'1', "Add the room",    DialogTableAdd},
                 {'2', "Delete the room", DialogTableDelete},
-                {'3', "Show the table",  DialogTablePrint},
-                {'4', "Print the table", DialogTablePrint},
+                {'3', "Show the table",  DialogTablePrint}
         };
 
 static const Menu_Option hotel_menu[] =
@@ -68,13 +67,7 @@ int DialogTableDelete(hotel::Table &table) {
     int number;
     std::cout << "Enter the room number you want to delete\n";
     choice_check(number, 0, 100);
-    try {
-        table.DeleteElement(number);
-    }
-    catch (const std::exception &e) {
-        std::cerr << "Caught: " << e.what() << std::endl;
-        std::cerr << "Type: " << typeid(e).name() << std::endl;
-    }
+    table.DeleteElement(number);
     return 1;
 }
 
@@ -84,32 +77,38 @@ int DialogTablePrint(hotel::Table &table) {
 }
 
 int DialogResidentAdd(hotel::Table &table) {
-    int number, day, month, year;
+    int number;//, day, month, year;
     char slash;
     hotel::Info info;
     std::cout << "Enter the number of room you want to take\n";
     choice_check(number, 0, 100);
-    std::cout << "Enter Day/Month/Year of registration and amount of days to reserve\n";
-    std::cin >> info.day >> slash >> info.month >> slash >> info.year;
-    while (!std::cin.good()) {
-        std::cout << "You're wrong. Try again!";
-        std::cin.clear();
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        std::cin >> day >> slash >> month >> slash >> year;
-    }
-    try {
-        (*table.FindElement(number)).second->TakeRoom(info);
-        if ((*table.FindElement(number)).second->GetType() == hotel::SUITE) {
-            hotel::Suite *suite;
-            suite = dynamic_cast<hotel::Suite *>(((*table.FindElement(number)).second));
-            std::cout << "How many residents register?\n";
-            choice_check(number, 1, 2);
-            suite->SetNumberOfResidents(number);
+    if (table.FindElement(number) != nullptr) {
+        std::cout << "Enter Day/Month/Year of registration and amount of days to reserve\n";
+        std::cin >> info.day >> slash >> info.month >> slash >> info.year >> info.number_of_lodging_nights;
+        while (!std::cin.good()) {
+            std::cout << "You're wrong. Try again!";
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+            std::cin >> info.day >> slash >> info.month >> slash >> info.year >> info.number_of_lodging_nights;
         }
-    }
-    catch (const std::exception &e) {
-        std::cerr << "Caught: " << e.what() << std::endl;
-        std::cerr << "Type: " << typeid(e).name() << std::endl;
+        try {
+            if ((*table.FindElement(number)).second->GetType() == hotel::SUITE) {
+                hotel::Suite *suite;
+                suite = dynamic_cast<hotel::Suite *>(((*table.FindElement(number)).second));
+                std::cout << "How many residents register?\n";
+                choice_check(number, 1, 2);
+                suite->SetNumberOfResidents(number);
+                suite->TakeRoom(info);
+            } else {
+                (*table.FindElement(number)).second->TakeRoom(info);
+            }
+        }
+        catch (const std::exception &e) {
+            std::cerr << "Caught: " << e.what() << std::endl;
+            std::cerr << "Type: " << typeid(e).name() << std::endl;
+        }
+    } else {
+        std::cout << "Room does not exist" << std::endl;
     }
     return 1;
 }
@@ -119,24 +118,27 @@ int DialogResidentDelete(hotel::Table &table) {
     hotel::Type type;
     std::cout << "Enter the number of room you want to vacate\n";
     choice_check(number, 0, 100);
-    try {
-        type = (*table.FindElement(number)).second->GetType();
-        if (type == hotel::MULTI_BED_ROOM) {
-            hotel::Multi *multi;
-            multi = dynamic_cast<hotel::Multi *>(((*table.FindElement(number)).second));
-            multi->PrintInfo();
-            std::cout << "Please, choose room to vacate\n";
-            choice_check(room, 0, multi->GetNumberOfResidents());
-            std::cout << "Total cost: " << multi->RemoveResident(room);
-        } else {
-            std::cout << "Total cost: " << (*table.FindElement(number)).second->VacateRoom();
+    if (table.FindElement(number) != nullptr) {
+        try {
+            type = (*table.FindElement(number)).second->GetType();
+            if (type == hotel::MULTI_BED_ROOM) {
+                hotel::Multi *multi;
+                multi = dynamic_cast<hotel::Multi *>(((*table.FindElement(number)).second));
+                multi->PrintInfo();
+                std::cout << "Please, choose room to vacate\n";
+                choice_check(room, 0, multi->GetNumberOfResidents());
+                std::cout << "Total cost: " << multi->RemoveResident(room) << std::endl;
+            } else {
+                std::cout << "Total cost: " << (*table.FindElement(number)).second->VacateRoom() << std::endl;
+            }
         }
+        catch (const std::exception &e) {
+            std::cerr << "Caught: " << e.what() << std::endl;
+            std::cerr << "Type: " << typeid(e).name() << std::endl;
+        }
+    } else {
+        std::cout << "Room does not exist" << std::endl;
     }
-    catch (const std::exception &e) {
-        std::cerr << "Caught: " << e.what() << std::endl;
-        std::cerr << "Type: " << typeid(e).name() << std::endl;
-    }
-
     return 1;
 }
 
@@ -146,9 +148,8 @@ int DialogPrintFreeRooms(hotel::Table &table) {
 }
 
 int main() {
-    int choice;
+    int choice = 1;
     hotel::Table table;
-    choice = 1;
     while (choice) {
         for (const auto &k: table_menu) {
             std::cout << k.choice << ". " << k.p_selection_text << "\n";
