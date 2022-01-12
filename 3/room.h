@@ -4,7 +4,9 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <map>
+#include "container.h"
+
+#include "cmake-build-debug/_deps/googletest-src/googletest/include/gtest/gtest_prod.h"
 
 
 namespace hotel {
@@ -13,6 +15,12 @@ namespace hotel {
         int month;
         int year;
         int number_of_lodging_nights;
+
+        friend std::ostream &operator<<(std::ostream &out, const Info &a) {
+            out << "Date: " << a.day << "/" << a.month << "/" << a.year;
+            out << "; Lodging nights: " << a.number_of_lodging_nights << std::endl;
+            return out;
+        };
     } Info;
 
     enum Type {
@@ -40,18 +48,19 @@ namespace hotel {
 
         virtual int GetNumberOfResidents() const = 0;
 
-        //void SetOccupancy(bool occupancy) {occupancy_ = occupancy;};
-        //virtual void SetDSA() = 0;
 
-        void PrintTableElement() const;
+        void PrintTableElement(std::ostream &cout = std::cout) const;
 
-        virtual void PrintInfo() const = 0;
+        virtual void PrintInfo(std::ostream &cout = std::cout) const = 0;
 
         virtual void TakeRoom(Info info) = 0;
 
         virtual int VacateRoom() = 0;
 
-        friend std::ostream &operator<<(std::ostream &out, const Info &a);
+        friend std::ostream &operator<<(std::ostream &out, Room *a) {
+            a->PrintInfo(out);
+            return out;
+        };
     };
 
 
@@ -65,15 +74,12 @@ namespace hotel {
 
         int GetNumberOfResidents() const override { if (occupancy_) return 1; else return 0; };
 
-//        void SetDSA() override {daily_subsistence_allowance_ = 300;};
-
-        void PrintInfo() const override { PrintTableElement(); };
+        void PrintInfo(std::ostream &cout = std::cout) const override { PrintTableElement(cout); };
 
         void TakeRoom(Info info) override { Room::TakeRoom(info); };
 
         int VacateRoom() override {
-            Room::VacateRoom();
-            return 1;
+            return Room::VacateRoom();
         };
     };
 
@@ -92,21 +98,20 @@ namespace hotel {
 
         Type GetType() const override { return SUITE; };
 
-        //void SetDSA() override {daily_subsistence_allowance_ = number_of_rooms_ * 600;};
-        //void SetNumberOfRooms(int n);
         void SetNumberOfResidents(int n);
 
-        void TakeRoom(Info info) override { Room::TakeRoom(info); }; //?????????????????????????
+        void TakeRoom(Info info) override { Room::TakeRoom(info); };
         int VacateRoom() override {
             int sum = Room::VacateRoom();
+            sum *= number_of_residents_;
             number_of_residents_ = 0;
-            return sum * number_of_residents_;
+            return sum;
         };
 
-        void PrintInfo() const override {
-            PrintTableElement();
-            std::cout << "Number of rooms: " <<
-                      number_of_rooms_ << "\n Number of residents: " << number_of_residents_;
+        void PrintInfo(std::ostream &cout = std::cout) const override {
+            PrintTableElement(cout);
+            cout << "Number of rooms: " <<
+                 number_of_rooms_ << "\nNumber of residents: " << number_of_residents_ << std::endl;
         };
 
     };
@@ -136,15 +141,16 @@ namespace hotel {
             return sum;
         };
 
-        void PrintInfo() const override;
+        void PrintInfo(std::ostream &cout = std::cout) const override;
 
         int RemoveResident(int i);
     };
 
+    typedef container::MyContainer<int, Room *> TableElement;
 
     class Table {
     private:
-        std::map<int, Room *> room_;
+        TableElement room_;
     public:
         Table() = default;
 
@@ -152,10 +158,9 @@ namespace hotel {
 
         void DeleteElement(int number);
 
-//        TableElement::iterator FindElement(int number);
-        std::map<int, Room *>::const_iterator FindElement(int number) const;
+        TableElement::Iterator FindElement(int number) const;
 
-        friend std::ostream &operator<<(std::ostream &out, const std::map<int, Room *> &a) {
+        friend std::ostream &operator<<(std::ostream &out, const TableElement &a) {
             for (const auto &it: a) {
                 out << it.first << " ";
                 it.second->PrintTableElement();
